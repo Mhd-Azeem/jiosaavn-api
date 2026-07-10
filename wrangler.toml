@@ -22,8 +22,3 @@ DAILY_REQUEST_LIMIT = "100000"
 [[kv_namespaces]]
 binding = "CACHE_KV"
 id = "REPLACE_WITH_KV_NAMESPACE_ID"
-
-# Powers GET /api/videos/search. YOUTUBE_API_KEY is a secret, not a var — set it with:
-#   wrangler secret put YOUTUBE_API_KEY
-# Get a key at https://console.cloud.google.com/apis/credentials after enabling "YouTube Data
-# API v3" for a project. Until it's set, the endpoint responds 503.
