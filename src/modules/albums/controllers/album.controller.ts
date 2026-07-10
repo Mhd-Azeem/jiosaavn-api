@@ -1,4 +1,6 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
+import { DETAIL_CACHE_STALE_SECONDS, DETAIL_CACHE_TTL_SECONDS } from '#common/constants'
+import { cache } from '#common/middleware'
 import { AlbumModel } from '#modules/albums/models'
 import { AlbumService } from '#modules/albums/services'
 import type { Routes } from '#common/types'
@@ -13,6 +15,13 @@ export class AlbumController implements Routes {
   }
 
   public initRoutes() {
+    // Album metadata rarely changes once published - cache for a day, backed by KV so it
+    // survives Cache API misses at other edge PoPs.
+    this.controller.use(
+      '/albums',
+      cache({ freshTtlSeconds: DETAIL_CACHE_TTL_SECONDS, staleTtlSeconds: DETAIL_CACHE_STALE_SECONDS, useKv: true })
+    )
+
     this.controller.openapi(
       createRoute({
         method: 'get',

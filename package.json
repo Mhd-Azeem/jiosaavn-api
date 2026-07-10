@@ -27,10 +27,13 @@
     }
   },
   "scripts": {
+    "predev": "wrangler types",
     "dev": "bun run --hot src/server.ts",
     "start": "bun dist/server.js",
-    "prebuild": "rm -rf dist",
+    "prebuild": "rm -rf dist && wrangler types",
     "build": "tsc && tsc-alias",
+    "pretypecheck": "wrangler types",
+    "typecheck": "tsc --noEmit",
     "format": "prettier --write \"./**/*.{js,ts,json}\"",
     "lint": "eslint .",
     "lint:fix": "bun run lint --fix",

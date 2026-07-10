@@ -1,4 +1,6 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
+import { SEARCH_CACHE_STALE_SECONDS, SEARCH_CACHE_TTL_SECONDS } from '#common/constants'
+import { cache } from '#common/middleware'
 import {
   SearchAlbumModel,
   SearchArtistModel,
@@ -19,6 +21,19 @@ export class SearchController implements Routes {
   }
 
   public initRoutes() {
+    // Search results churn faster than detail pages but are still safe to serve slightly stale -
+    // Cache API only (no KV) since search queries have high cardinality and would burn the KV
+    // free-tier write quota fast.
+    const searchCache = cache({
+      freshTtlSeconds: SEARCH_CACHE_TTL_SECONDS,
+      staleTtlSeconds: SEARCH_CACHE_STALE_SECONDS
+    })
+    this.controller.use('/search', searchCache)
+    this.controller.use('/search/songs', searchCache)
+    this.controller.use('/search/albums', searchCache)
+    this.controller.use('/search/artists', searchCache)
+    this.controller.use('/search/playlists', searchCache)
+
     this.controller.openapi(
       createRoute({
         method: 'get',

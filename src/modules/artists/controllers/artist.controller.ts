@@ -1,4 +1,6 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi'
+import { DETAIL_CACHE_STALE_SECONDS, DETAIL_CACHE_TTL_SECONDS } from '#common/constants'
+import { cache } from '#common/middleware'
 import { ArtistAlbumModel, ArtistModel, ArtistSongModel } from '#modules/artists/models'
 import { ArtistService } from '#modules/artists/services'
 import { z } from 'zod'
@@ -14,6 +16,20 @@ export class ArtistController implements Routes {
   }
 
   public initRoutes() {
+    // Artist profile rarely changes - cache for a day, backed by KV. The paginated songs/albums
+    // sub-lists have higher cardinality (page/sort combinations) so they stay Cache-API-only to
+    // protect the KV free-tier write quota.
+    const detailCache = cache({
+      freshTtlSeconds: DETAIL_CACHE_TTL_SECONDS,
+      staleTtlSeconds: DETAIL_CACHE_STALE_SECONDS,
+      useKv: true
+    })
+    const listCache = cache({ freshTtlSeconds: DETAIL_CACHE_TTL_SECONDS, staleTtlSeconds: DETAIL_CACHE_STALE_SECONDS })
+    this.controller.use('/artists', detailCache)
+    this.controller.use('/artists/:id', detailCache)
+    this.controller.use('/artists/:id/songs', listCache)
+    this.controller.use('/artists/:id/albums', listCache)
+
     this.controller.openapi(
       createRoute({
         method: 'get',

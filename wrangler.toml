@@ -13,3 +13,12 @@ enabled = true
 [vars]
 CF_ACCOUNT_ID = ""
 DAILY_REQUEST_LIMIT = "100000"
+
+# Secondary, longer-lived cache for low-churn detail responses (song/album/artist/playlist),
+# backing the Cache API for the 24h tier. Create it once with:
+#   wrangler kv namespace create CACHE_KV
+# then replace the placeholder id below with the id it prints. Until a real id is set, the cache
+# middleware degrades gracefully to Cache-API-only (the binding is optional at the type level).
+[[kv_namespaces]]
+binding = "CACHE_KV"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"

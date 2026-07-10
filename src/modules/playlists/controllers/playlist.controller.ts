@@ -1,4 +1,6 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
+import { DETAIL_CACHE_STALE_SECONDS, DETAIL_CACHE_TTL_SECONDS } from '#common/constants'
+import { cache } from '#common/middleware'
 import { PlaylistModel } from '#modules/playlists/models'
 import { PlaylistService } from '#modules/playlists/services'
 import type { Routes } from '#common/types'
@@ -13,6 +15,13 @@ export class PlaylistController implements Routes {
   }
 
   public initRoutes() {
+    // Playlist contents rarely change minute-to-minute - cache for a day, backed by KV so it
+    // survives Cache API misses at other edge PoPs.
+    this.controller.use(
+      '/playlists',
+      cache({ freshTtlSeconds: DETAIL_CACHE_TTL_SECONDS, staleTtlSeconds: DETAIL_CACHE_STALE_SECONDS, useKv: true })
+    )
+
     this.controller.openapi(
       createRoute({
         method: 'get',

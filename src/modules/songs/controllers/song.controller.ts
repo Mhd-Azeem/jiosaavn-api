@@ -1,4 +1,6 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi'
+import { DETAIL_CACHE_STALE_SECONDS, DETAIL_CACHE_TTL_SECONDS } from '#common/constants'
+import { cache } from '#common/middleware'
 import { SongModel } from '#modules/songs/models'
 import { SongService } from '#modules/songs/services'
 import { z } from 'zod'
@@ -16,6 +18,22 @@ export class SongController implements Routes {
   }
 
   public initRoutes() {
+    // Song metadata rarely changes once published - cache for a day, backed by KV so it survives
+    // Cache API misses at other edge PoPs. Suggestions are a computed, higher-cardinality list
+    // (varies with limit param) so they stay Cache-API-only to protect the KV write quota.
+    const detailCache = cache({
+      freshTtlSeconds: DETAIL_CACHE_TTL_SECONDS,
+      staleTtlSeconds: DETAIL_CACHE_STALE_SECONDS,
+      useKv: true
+    })
+    const suggestionsCache = cache({
+      freshTtlSeconds: DETAIL_CACHE_TTL_SECONDS,
+      staleTtlSeconds: DETAIL_CACHE_STALE_SECONDS
+    })
+    this.controller.use('/songs', detailCache)
+    this.controller.use('/songs/:id', detailCache)
+    this.controller.use('/songs/:id/suggestions', suggestionsCache)
+
     this.controller.openapi(
       createRoute({
         method: 'get',
