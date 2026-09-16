@@ -37,8 +37,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release view v0.2.0 --repo $env:GITHUB_REPOSITORY *> $null
-          if ($LASTEXITCODE -eq 0) {
+          $releaseExists = $false
+          gh release view v0.2.0 --repo $env:GITHUB_REPOSITORY 2>$null | Out-Null
+          if ($LASTEXITCODE -eq 0) { $releaseExists = $true }
+          if ($releaseExists) {
             gh release upload v0.2.0 .\AzDroid-v0.2.0.zip --clobber --repo $env:GITHUB_REPOSITORY
           } else {
             gh release create v0.2.0 .\AzDroid-v0.2.0.zip --repo $env:GITHUB_REPOSITORY --target main --title "AzDroid v0.2.0" --notes "First Android-x86/QEMU prototype with persistent virtual disk, ISO setup, ADB APK installation, Windows-to-Android file copy, and Home/Back/Recent controls."
