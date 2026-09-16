@@ -1,0 +1,36 @@
+name: Build Az APK Runner
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'scripts/**'
+      - '.github/workflows/build-windows.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install ps2exe
+        shell: powershell
+        run: Install-Module ps2exe -Scope CurrentUser -Force
+      - name: Build EXE
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Invoke-ps2exe .\src\AzApkRunner.ps1 .\dist\AzApkRunner.exe -noConsole -title 'Az APK Runner' -product 'Az APK Runner' -version '0.1.0'
+          Copy-Item .\scripts\setup-runtime.ps1 .\dist\setup-runtime.ps1
+          Set-Content .\dist\README.txt "1. Run setup-runtime.ps1 once. 2. Run AzApkRunner.exe. 3. Start Android. 4. Select an APK and install it."
+      - name: Package
+        shell: powershell
+        run: Compress-Archive -Path .\dist\* -DestinationPath .\Az-APK-Runner-v0.1.0.zip -Force
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Az-APK-Runner-v0.1.0
+          path: Az-APK-Runner-v0.1.0.zip
