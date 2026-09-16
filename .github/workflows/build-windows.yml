@@ -16,32 +16,35 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Install ps2exe
         shell: powershell
         run: Install-Module ps2exe -Scope CurrentUser -Force
+
       - name: Build AzDroid EXE
         shell: powershell
         run: |
           New-Item -ItemType Directory -Force dist | Out-Null
           Invoke-ps2exe .\src\AzApkRunner.ps1 .\dist\AzDroid.exe -noConsole -title 'AzDroid' -product 'AzDroid Android APK Runner' -version '0.2.0'
           Set-Content .\dist\README.txt "AzDroid v0.2.0. Requires QEMU in C:\Program Files\qemu and ADB from Android Studio platform-tools or bundled runtime. Select Android-x86 ISO, choose Create / Install Phone once, then use Start Android. Select APK > Install APK installs through ADB."
+
       - name: Package
         shell: powershell
         run: Compress-Archive -Path .\dist\* -DestinationPath .\AzDroid-v0.2.0.zip -Force
-      - uses: actions/upload-artifact@v4
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
         with:
           name: AzDroid-v0.2.0
           path: AzDroid-v0.2.0.zip
+
       - name: Publish GitHub Release
-        shell: powershell
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          $releaseExists = $false
-          gh release view v0.2.0 --repo $env:GITHUB_REPOSITORY 2>$null | Out-Null
-          if ($LASTEXITCODE -eq 0) { $releaseExists = $true }
-          if ($releaseExists) {
-            gh release upload v0.2.0 .\AzDroid-v0.2.0.zip --clobber --repo $env:GITHUB_REPOSITORY
-          } else {
-            gh release create v0.2.0 .\AzDroid-v0.2.0.zip --repo $env:GITHUB_REPOSITORY --target main --title "AzDroid v0.2.0" --notes "First Android-x86/QEMU prototype with persistent virtual disk, ISO setup, ADB APK installation, Windows-to-Android file copy, and Home/Back/Recent controls."
-          }
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v0.2.0
+          name: AzDroid v0.2.0
+          target_commitish: main
+          body: |
+            First Android-x86/QEMU prototype with persistent virtual disk, ISO setup, ADB APK installation, Windows-to-Android file copy, and Home/Back/Recent controls.
+          files: AzDroid-v0.2.0.zip
+          fail_on_unmatched_files: true
